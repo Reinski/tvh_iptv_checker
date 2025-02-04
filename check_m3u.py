@@ -109,9 +109,10 @@ def monitor_file_changes(tvheadend_url, username, password, email_config):
     for network in networks:
         playlist_url = network.get("url")
         network_uuid = network.get("uuid")
+        network_name = network.get("networkname", network_uuid)
 
         if playlist_url and playlist_url.endswith(".m3u"):
-            print(f"{datetime.now().isoformat()}: Checking playlist: {playlist_url}")
+            print(f"{datetime.now().isoformat()}: Checking playlist of network '{network_name}': {playlist_url}")
 
             try:
                 response = requests.get(playlist_url, timeout=10)
@@ -163,5 +164,9 @@ if __name__ == "__main__":
             "smtp_username": args.smtp_username,
             "smtp_password": args.smtp_password
         }
-
-    monitor_file_changes(args.server, args.username, args.password, email_config)
+    try:
+        monitor_file_changes(args.server, args.username, args.password, email_config)
+    except KeyboardInterrupt:
+        print("Execution was interrupted by signal.")
+    except Exception as e:
+        print(f"Error during execution: {e}")
