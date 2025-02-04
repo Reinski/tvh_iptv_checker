@@ -1,0 +1,10 @@
+# email settings
+export SMTP_SERVER=mail.example.com
+export SMTP_PORT=465
+export SMTP_SENDER=my-name@example.com
+export SMTP_RECIPIENT=my-name@example.com
+export SMTP_USER=my-name@example.com
+export SMTP_PASS=very_strong_password_goes here
+# user account configured in TVH to read the settings
+export TVH_USER=tvh_api 
+export TVH_PASS=tvhapi
