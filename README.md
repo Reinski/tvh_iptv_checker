@@ -19,7 +19,7 @@ The correction in tvheadend then needs to be done manually in the web UI.
 # Working Principle
 - Reads the IPTV networks from tvheadend and the URL for the according m3u playlist.
 - Downloads the playlist for each network.
-- Reads the services belonging to the network and compares the configured command with the one from the playlist.
+- Reads the muxes (services) belonging to the network and compares the configured command (which includes the streaming URL) with the one from the playlist.
 - Builds a list with the differences it discoverd.
 - Connects to the SMPT server and sends an email containing that list.
 - Protocols everything to stdout
