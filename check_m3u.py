@@ -129,7 +129,15 @@ def monitor_file_changes(tvheadend_url, username, password, email_config):
                 all_results.append(error_message)
 
     if email_config:
-        email_body = "\n".join(all_results)
+        # create mail body
+        email_body = "Summary:\n---------------------------------------------------------------------------------------------------------\n"
+        for block in all_results:
+            for line in block.split('\n'):
+                if line and line.strip()[0] in ('*', '+', '-'):
+                    email_body += line.split(':')[0] + "\n"
+        email_body += "\n"
+        email_body += "Details:\n---------------------------------------------------------------------------------------------------------\n" + "\n".join(all_results)
+
         send_email(
             smtp_server=email_config["smtp_server"],
             smtp_port=email_config["smtp_port"],
