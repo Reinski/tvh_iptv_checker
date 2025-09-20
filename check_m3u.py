@@ -1,14 +1,16 @@
 #!/usr/bin/python3
+version = '1.0.3'
+import argparse
+from datetime import datetime
+from email.mime.text import MIMEText
 import hashlib
+import os
+import re
 import requests
 from requests.auth import HTTPDigestAuth
-import os
-from urllib.parse import urlparse
-import re
-import argparse
 import smtplib
-from email.mime.text import MIMEText
-from datetime import datetime
+import socket
+from urllib.parse import urlparse
 
 # Function to compute the hash of a file
 def get_file_hash(content):
@@ -58,10 +60,11 @@ def compare_m3u_with_muxes(m3u_streams, muxes, network_uuid):
 
     modified_streams = []
     for stream_name in common_streams:
+        mux_name = mux_streams[stream_name]["name"]
         m3u_pipe = m3u_streams[stream_name]["pipe"]
         mux_pipe = mux_streams[stream_name]["iptv_url"]
         if m3u_pipe != mux_pipe:
-            modified_streams.append((stream_name, m3u_pipe, mux_pipe))
+            modified_streams.append((mux_name, stream_name, m3u_pipe, mux_pipe))
 
     results = []
     if added_streams:
@@ -76,8 +79,8 @@ def compare_m3u_with_muxes(m3u_streams, muxes, network_uuid):
 
     if modified_streams:
         results.append("Modified streams:")
-        for stream_name, m3u_pipe, mux_pipe in modified_streams:
-            results.append(f"* {stream_name} changed:\n  M3U: {m3u_pipe}\n  Mux: {mux_pipe}")
+        for mux_name, stream_name, m3u_pipe, mux_pipe in modified_streams:
+            results.append(f"* {mux_name} --> {stream_name} changed:\n  M3U: {m3u_pipe}\n  Mux: {mux_pipe}")
 
     if not added_streams and not removed_streams and not modified_streams:
         results.append("No changes detected.")
@@ -122,7 +125,7 @@ def monitor_file_changes(tvheadend_url, username, password, email_config):
 
                 results = compare_m3u_with_muxes(m3u_streams, muxes, network_uuid)
                 print(f"{datetime.now().isoformat()}: {results}")
-                all_results.append(f"Results for playlist {playlist_url}:\n{results}\n")
+                all_results.append(f"Results for network '{network_name}' ({playlist_url}):\n{results}\n")
             except requests.RequestException as e:
                 error_message = f"{datetime.now().isoformat()}: Error fetching playlist {playlist_url}: {e}"
                 print(error_message)
@@ -137,7 +140,10 @@ def monitor_file_changes(tvheadend_url, username, password, email_config):
                     email_body += line.split(':')[0] + "\n"
         email_body += "\n"
         email_body += "Details:\n---------------------------------------------------------------------------------------------------------\n" + "\n".join(all_results)
-
+        email_body += "\n\nWhat to do:"
+        email_body += "\n- '+' add the stream to TVHeadend (more details to follow...))"
+        email_body += "\n- '-' remove the mux+stream from TVHeadend)"
+        email_body += "\n- '*' look up the mux in TVHeadend and update the data\n"
         send_email(
             smtp_server=email_config["smtp_server"],
             smtp_port=email_config["smtp_port"],
@@ -145,12 +151,12 @@ def monitor_file_changes(tvheadend_url, username, password, email_config):
             recipient_email=email_config["recipient_email"],
             smtp_username=email_config["smtp_username"],
             smtp_password=email_config["smtp_password"],
-            subject="TVHeadend M3U Comparison Results",
+            subject=f"TVHeadend M3U Comparison Results ({socket.getfqdn()})",
             body=email_body
         )
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Compares an M3U file with TVHeadend muxes.")
+    parser = argparse.ArgumentParser(description=f"Check_m3u (V{version}): Compares an M3U file with TVHeadend muxes.")
     parser.add_argument("-s", "--server", required=True, help="TVHeadend server address and port (e.g., 127.0.0.1:9981)")
     parser.add_argument("-user", "--username", required=True, help="Username for TVHeadend authentication")
     parser.add_argument("-pass", "--password", required=True, help="Password for TVHeadend authentication")
